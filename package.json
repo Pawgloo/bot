@@ -2,25 +2,30 @@
   "name": "bot",
   "version": "1.0.0",
   "private": true,
-  "description": "A Probot app",
+  "description": "A Probot app with Google Jules integration",
   "author": "gaurav2361",
   "license": "ISC",
   "homepage": "https://github.com//",
   "keywords": [
     "probot",
     "github",
-    "probot-app"
+    "probot-app",
+    "jules"
   ],
   "scripts": {
-    "start": "probot run ./index.js",
-    "test": "node --test"
+    "start": "probot run ./app.js",
+    "test": "node --test",
+    "dev": "nodemon --exec npm start"
   },
   "dependencies": {
-    "probot": "^13.0.1"
+    "probot": "^13.0.1",
+    "minimatch": "^9.0.3",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "nock": "^14.0.0-beta.5",
-    "smee-client": "^2.0.0"
+    "smee-client": "^2.0.0",
+    "nodemon": "^3.0.1"
   },
   "engines": {
     "node": ">= 18"

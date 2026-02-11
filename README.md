@@ -1,6 +1,6 @@
 # bot
 
-> A GitHub App built with [Probot](https://github.com/probot/probot) that A Probot app
+> A GitHub App built with [Probot](https://github.com/probot/probot) that reviews Pull Requests using [Google Jules](https://jules.google/).
 
 ## Setup
 
@@ -12,21 +12,33 @@ npm install
 npm start
 ```
 
+## Configuration
+
+Copy `.env.example` to `.env` and fill in:
+
+| Variable | Description |
+|---|---|
+| `APP_ID` | Your GitHub App ID |
+| `PRIVATE_KEY` | Your GitHub App private key |
+| `WEBHOOK_SECRET` | Webhook secret (set on GitHub App settings) |
+| `WEBHOOK_PROXY_URL` | Smee.io URL for local dev |
+| `JULES_API_KEY` | API key from [jules.google](https://jules.google) → Settings |
+| `IGNORE_PATTERNS` | *(Optional)* Comma-separated globs to skip (default: `docs/,*.md,...`) |
+| `MAX_PATCH_LENGTH` | *(Optional)* Max chars per file patch before skipping |
+
+## Triggers
+
+| Trigger | How |
+|---|---|
+| Automatic | Opens a PR or pushes new commits |
+| Manual | Comment `/pawgloo-review` on any PR |
+
 ## Docker
 
 ```sh
-# 1. Build container
 docker build -t bot .
-
-# 2. Start container
-docker run -e APP_ID=<app-id> -e PRIVATE_KEY=<pem-value> bot
+docker run -e APP_ID=<id> -e PRIVATE_KEY=<pem> -e WEBHOOK_SECRET=<secret> -e JULES_API_KEY=<key> bot
 ```
-
-## Contributing
-
-If you have suggestions for how bot could be improved, or want to report a bug, open an issue! We'd love all and any contributions.
-
-For more, check out the [Contributing Guide](CONTRIBUTING.md).
 
 ## License
 
