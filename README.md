@@ -31,7 +31,21 @@ Copy `.env.example` to `.env` and fill in:
 | Trigger | How |
 |---|---|
 | Automatic | Opens a PR or pushes new commits |
-| Manual | Comment `/pawgloo-review` on any PR |
+| Automatic | Opens a PR or pushes new commits |
+| Manual | Comment `/pawgloo-review` on any PR (works on old PRs too!) |
+
+## How it works
+
+The bot listens for PR events and sends the code diff to **Google Jules**.
+
+### The Prompt
+It acts as a **Senior Code Reviewer** with the following focus areas:
+1. **Security** – SQL injection, XSS, secrets in code, unsafe deserialization
+2. **Logic errors** – off-by-one, null pointer, race conditions
+3. **Clean code** – naming, complexity, duplication
+4. **Performance** – unnecessary loops, missing indexes, memory leaks
+
+It then posts a **Review** on the PR with inline comments for specific lines and a high-level summary.
 
 ## Docker
 
