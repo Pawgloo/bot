@@ -1,6 +1,6 @@
 # bot
 
-> A GitHub App built with [Probot](https://github.com/probot/probot) that reviews Pull Requests using [Google Jules](https://jules.google/).
+> An intelligent GitHub App that acts as a Senior Code Reviewer. It automatically reviews Pull Requests using **Google Jules**, focusing on security, logic, and clean code principles. Trigger it automatically on PRs or manually with `/pawgloo-review`.
 
 ## Setup
 
