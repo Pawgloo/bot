@@ -1,8 +1,34 @@
-FROM node:20-slim
+# Install dependencies
+FROM node:20-slim AS build
+
 WORKDIR /usr/src/app
+
 COPY package.json package-lock.json ./
-RUN npm ci --production
-RUN npm cache clean --force
-ENV NODE_ENV="production"
-COPY . .
-CMD [ "npm", "start" ]
+RUN npm ci --production && npm cache clean --force
+
+# Production image
+FROM node:20-slim
+
+ARG VERSION=dev
+ENV APP_VERSION=$VERSION
+ENV NODE_ENV=production
+
+WORKDIR /usr/src/app
+
+# Copy production node_modules from build stage
+COPY --from=build /usr/src/app/node_modules ./node_modules
+
+# Copy application source
+COPY package.json package-lock.json ./
+COPY index.js app.js ./
+COPY lib ./lib
+
+# Run as non-root user for security
+USER node
+
+EXPOSE 3000
+
+LABEL org.opencontainers.image.source="https://github.com/Pawgloo/bot"
+LABEL org.opencontainers.image.description="Probot GitHub App with Jules integration"
+
+CMD ["npm", "start"]
