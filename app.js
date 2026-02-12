@@ -21,6 +21,8 @@ const IGNORE_PATTERNS = (process.env.IGNORE_PATTERNS || "*.md,*.txt,*.lock,*.png
 
 export default (app) => {
   app.log.info("🤖 Jules Code Review bot loaded!");
+  app.log.info(`Registered events: pull_request.opened, pull_request.synchronize, issue_comment.created`);
+  app.log.info(`Ignore patterns: ${IGNORE_PATTERNS.join(", ")}`);
 
   // ─── Debug: log all incoming events ───────────────────────
   app.onAny(async (context) => {
@@ -100,7 +102,16 @@ export default (app) => {
         patch: f.patch,
       }));
 
-      const review = await reviewer.analyze(filesForReview);
+      // Pass PR metadata for richer prompt context
+      const prMeta = {
+        title: pr.title || "",
+        body: pr.body || "",
+        author: pr.user?.login || "unknown",
+        baseBranch: pr.base?.ref || "main",
+        headBranch: pr.head?.ref || "unknown",
+      };
+
+      const review = await reviewer.analyze(filesForReview, prMeta);
 
       // 4. Post Review via GitHub API
       //    Map each comment's `line` to a valid position in the diff
@@ -138,13 +149,14 @@ export default (app) => {
       );
     } catch (error) {
       app.log.error(`Review failed: ${error.message}`);
+      app.log.error(error.stack);
 
       // Post error as a comment so the user knows something went wrong
       try {
         await context.octokit.issues.createComment({
           ...context.repo(),
           issue_number: pr.number,
-          body: `### Jules Code Review\n\n❌ **Error during review**: ${error.message}\n\nPlease check the bot logs or retry with \`/jules review\`.`,
+          body: `### Jules Code Review\n\n❌ **Error during review**: ${error.message}\n\nPlease check the bot logs or retry with \`/pawgloo-review\`.`,
         });
       } catch (commentError) {
         app.log.error(`Failed to post error comment: ${commentError.message}`);
@@ -157,9 +169,18 @@ export default (app) => {
     ["pull_request.opened", "pull_request.synchronize"],
     async (context) => {
       const pr = context.payload.pull_request;
+      app.log.info(
+        `🔔 Auto-trigger fired: ${context.payload.action} on PR #${pr.number} by ${pr.user?.login}`
+      );
 
       if (pr.state === "closed" || pr.locked) {
         app.log.info("Skipping closed/locked PR");
+        return;
+      }
+
+      // Skip draft PRs (optional, configurable)
+      if (pr.draft && process.env.SKIP_DRAFT_PRS !== "false") {
+        app.log.info(`Skipping draft PR #${pr.number}`);
         return;
       }
 
@@ -173,7 +194,9 @@ export default (app) => {
 
     // Must be a PR comment with the magic command
     if (!issue.pull_request) return;
-    if (comment.body.trim() !== "/pawgloo-review") return;
+
+    const trimmed = comment.body.trim().toLowerCase();
+    if (trimmed !== "/pawgloo-review" && trimmed !== "/jules review") return;
 
     app.log.info(`Manual trigger by ${comment.user.login} on PR #${issue.number}`);
 

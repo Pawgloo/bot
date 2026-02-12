@@ -2,6 +2,7 @@
   "name": "bot",
   "version": "1.0.0",
   "private": true,
+  "main": "app.js",
   "description": "A Probot app with Google Jules integration",
   "author": "gaurav2361",
   "license": "ISC",
