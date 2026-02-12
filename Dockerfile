@@ -29,6 +29,6 @@ USER node
 EXPOSE 3000
 
 LABEL org.opencontainers.image.source="https://github.com/Pawgloo/bot"
-LABEL org.opencontainers.image.description="Probot GitHub App with Jules integration"
+LABEL org.opencontainers.image.description="Pawgloo GitHub App"
 
 CMD ["npm", "start"]
