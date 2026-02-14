@@ -16,7 +16,7 @@ const MAX_PATCH_LENGTH = process.env.MAX_PATCH_LENGTH
 // Configurable ignore patterns (comma-separated in .env)
 const IGNORE_PATTERNS = (
 	process.env.IGNORE_PATTERNS ||
-	"*.md,*.txt,*.lock,*.png,*.jpg,*.svg,*.ico,dist/,node_modules/"
+	"*.txt,*.lock,*.png,*.jpg,*.svg,*.ico,dist/,node_modules/"
 )
 	.split(",")
 	.map((p) => p.trim())
