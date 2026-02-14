@@ -98,4 +98,41 @@ describe("_fixCodeBlocks", () => {
 			`Expected fenced bash block, got:\n${result}`,
 		);
 	});
+
+	test("does NOT wrap 'go' as it is a common English word", () => {
+		const input = "Ready to\ngo\nnow and do things.";
+		const result = reviewer._fixCodeBlocks(input);
+		assert.ok(
+			!result.includes("```go"),
+			`'go' should NOT be treated as a language tag, got:\n${result}`,
+		);
+		assert.ok(
+			result.includes("go\n"),
+			`Original 'go' text should be preserved`,
+		);
+	});
+
+	test("does NOT wrap 'c' as it is a common English letter", () => {
+		const input = "Option\nc\nis the best choice.";
+		const result = reviewer._fixCodeBlocks(input);
+		assert.ok(
+			!result.includes("```c"),
+			`'c' should NOT be treated as a language tag, got:\n${result}`,
+		);
+	});
+
+	test("auto-closes unclosed generic fence (no language tag)", () => {
+		const input = "See this:\n\n```\nsome code here\nmore code";
+		const result = reviewer._fixCodeBlocks(input);
+		const fences = result.match(/^```/gm) || [];
+		assert.equal(
+			fences.length % 2,
+			0,
+			`Fences should be balanced, got ${fences.length}:\n${result}`,
+		);
+		assert.ok(
+			result.trimEnd().endsWith("```"),
+			`Should end with closing fence, got:\n${result}`,
+		);
+	});
 });
