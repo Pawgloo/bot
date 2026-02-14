@@ -13,6 +13,14 @@ ARG VERSION=dev
 ENV APP_VERSION=$VERSION
 ENV NODE_ENV=production
 
+# Runtime secrets — injected via docker run -e or orchestrator
+# These MUST be provided at runtime, never baked into the image
+ENV APP_ID=
+ENV PRIVATE_KEY=
+ENV WEBHOOK_SECRET=
+ENV JULES_API_KEY=
+ENV WEBHOOK_PROXY_URL=
+
 WORKDIR /usr/src/app
 
 # Copy production node_modules from build stage
