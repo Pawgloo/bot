@@ -13,13 +13,18 @@ ARG VERSION=dev
 ENV APP_VERSION=$VERSION
 ENV NODE_ENV=production
 
-# Runtime secrets — injected via docker run -e or orchestrator
-# These MUST be provided at runtime, never baked into the image
-ENV APP_ID=
-ENV PRIVATE_KEY=
-ENV WEBHOOK_SECRET=
-ENV JULES_API_KEY=
-ENV WEBHOOK_PROXY_URL=
+# Runtime config — passed as build-args from GitHub Actions
+ARG APP_ID
+ARG PRIVATE_KEY
+ARG WEBHOOK_SECRET
+ARG JULES_API_KEY
+ARG WEBHOOK_PROXY_URL
+
+ENV APP_ID=$APP_ID
+ENV PRIVATE_KEY=$PRIVATE_KEY
+ENV WEBHOOK_SECRET=$WEBHOOK_SECRET
+ENV JULES_API_KEY=$JULES_API_KEY
+ENV WEBHOOK_PROXY_URL=$WEBHOOK_PROXY_URL
 
 WORKDIR /usr/src/app
 
