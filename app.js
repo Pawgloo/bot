@@ -126,38 +126,70 @@ export default (app) => {
 
 			// 4. Post Review via GitHub API
 			//    Map each comment's `line` to a valid position in the diff
+			const diffLineMap = new Map();
+			for (const file of changedFiles) {
+				diffLineMap.set(file.filename, parseDiffLines(file.patch));
+			}
+
 			const validComments = [];
+			const orphanComments = [];
+
 			for (const comment of review.comments) {
-				// GitHub createReview requires `line` to be within the range of the diff hunk
-				// We validate that the line is in the diff for safety
-				const matchingFile = changedFiles.find(
-					(f) => f.filename === comment.path,
-				);
-				if (matchingFile) {
+				const validLines = diffLineMap.get(comment.path);
+				if (validLines && validLines.has(comment.line)) {
 					validComments.push({
 						path: comment.path,
 						line: comment.line,
 						side: comment.side || "RIGHT",
 						body: comment.body,
 					});
+				} else if (validLines) {
+					// File exists in diff but line doesn't — save as orphan
+					orphanComments.push(comment);
 				}
 			}
 
-			await context.octokit.pulls.createReview({
-				owner: repo.owner,
-				repo: repo.repo,
-				pull_number: pr.number,
-				commit_id: pr.head.sha,
-				body: validComments.length
-					? review.summary
-					: review.summary || "LGTM 👍",
-				event: "COMMENT",
-				comments: validComments,
-			});
+			let reviewBody = validComments.length
+				? review.summary
+				: review.summary || "LGTM 👍";
 
-			app.log.info(
-				`✅ Review posted with ${validComments.length} inline comment(s).`,
-			);
+			if (orphanComments.length > 0) {
+				reviewBody +=
+					"\n\n---\n**Additional comments** (on lines outside the diff):\n\n";
+				for (const c of orphanComments) {
+					reviewBody += `- **${c.path}:${c.line}** — ${c.body}\n`;
+				}
+			}
+
+			try {
+				await context.octokit.pulls.createReview({
+					owner: repo.owner,
+					repo: repo.repo,
+					pull_number: pr.number,
+					commit_id: pr.head.sha,
+					body: reviewBody,
+					event: "COMMENT",
+					comments: validComments,
+				});
+
+				app.log.info(
+					`✅ Review posted with ${validComments.length} inline comment(s).`,
+				);
+			} catch (reviewErr) {
+				app.log.error(
+					`createReview failed: ${reviewErr.message}, falling back to comment`,
+				);
+				// Fallback: post as a plain issue comment
+				let fallbackBody = reviewBody;
+				for (const c of validComments) {
+					fallbackBody += `\n- **${c.path}:${c.line}** — ${c.body}`;
+				}
+				await context.octokit.issues.createComment({
+					...context.repo(),
+					issue_number: pr.number,
+					body: fallbackBody,
+				});
+			}
 		} catch (error) {
 			app.log.error(`Review failed: ${error.message}`);
 			app.log.error(error.stack);
@@ -229,3 +261,31 @@ export default (app) => {
 		await analyzeAndReview(context, pr);
 	});
 };
+
+/**
+ * Parse a unified diff patch and return the set of valid
+ * new-file (right-side) line numbers that GitHub will accept
+ * for inline review comments.
+ *
+ * @param {string} patch
+ * @returns {Set<number>}
+ */
+function parseDiffLines(patch) {
+	const lines = new Set();
+	if (!patch) return lines;
+
+	let newLine = 0;
+	for (const raw of patch.split("\n")) {
+		const hunkHeader = raw.match(/^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@/);
+		if (hunkHeader) {
+			newLine = parseInt(hunkHeader[1], 10);
+			continue;
+		}
+		if (raw.startsWith("-")) continue; // deleted line — not in new file
+		if (raw.startsWith("+") || raw.startsWith(" ")) {
+			lines.add(newLine);
+			newLine++;
+		}
+	}
+	return lines;
+}
