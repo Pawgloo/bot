@@ -99,16 +99,39 @@ describe("_fixCodeBlocks", () => {
 		);
 	});
 
-	test("does NOT wrap 'go' as it is a common English word", () => {
-		const input = "Ready to\ngo\nnow and do things.";
+	test("wraps bare hcl tag", () => {
+		const input = "Config:\n\nhcl\nresource \"aws_s3_bucket\" \"b\" {\n  bucket = \"my-tf-test-bucket\"\n}";
 		const result = reviewer._fixCodeBlocks(input);
 		assert.ok(
-			!result.includes("```go"),
-			`'go' should NOT be treated as a language tag, got:\n${result}`,
+			result.includes("```hcl\nresource \"aws_s3_bucket\" \"b\" {\n  bucket = \"my-tf-test-bucket\"\n}\n```"),
+			`Expected fenced hcl block, got:\n${result}`,
 		);
+	});
+
+	test("wraps bare lua tag", () => {
+		const input = "Script:\n\nlua\nprint(\"Hello World\")";
+		const result = reviewer._fixCodeBlocks(input);
 		assert.ok(
-			result.includes("go\n"),
-			`Original 'go' text should be preserved`,
+			result.includes("```lua\nprint(\"Hello World\")\n```"),
+			`Expected fenced lua block, got:\n${result}`,
+		);
+	});
+
+	test("wraps bare rust tag", () => {
+		const input = "Code:\n\nrust\nfn main() {\n    println!(\"Hello World\");\n}";
+		const result = reviewer._fixCodeBlocks(input);
+		assert.ok(
+			result.includes("```rust\nfn main() {\n    println!(\"Hello World\");\n}\n```"),
+			`Expected fenced rust block, got:\n${result}`,
+		);
+	});
+
+	test("wraps bare go tag", () => {
+		const input = "Ready to\ngo\nfunc main() {}";
+		const result = reviewer._fixCodeBlocks(input);
+		assert.ok(
+			result.includes("```go\nfunc main() {}\n```"),
+			`Expected fenced go block, got:\n${result}`,
 		);
 	});
 
