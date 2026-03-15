@@ -4,3 +4,5 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+octocrab = "0.49.5"
+octofer = "0.1.0"
