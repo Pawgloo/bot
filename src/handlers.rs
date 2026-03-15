@@ -15,34 +15,33 @@ pub async fn pull_request_handler(
     context: octofer::Context,
     state: Arc<AppState>,
 ) -> anyhow::Result<()> {
-    let payload = context.payload();
-
-    let action = payload
-        .get("action")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-
-    // Only react to "opened" and "synchronize"
-    if action != "opened" && action != "synchronize" {
-        return Ok(());
-    }
-
-    let pr = match payload.get("pull_request") {
-        Some(pr) => pr,
+    let event = match &context.event {
+        Some(e) => e,
         None => return Ok(()),
     };
 
-    let pr_number = pr.get("number").and_then(|n| n.as_u64()).unwrap_or(0);
-    let pr_state = pr
-        .get("state")
-        .and_then(|s| s.as_str())
-        .unwrap_or("open");
-    let is_draft = pr.get("draft").and_then(|d| d.as_bool()).unwrap_or(false);
-    let author = pr
-        .get("user")
-        .and_then(|u| u.get("login"))
-        .and_then(|l| l.as_str())
-        .unwrap_or("unknown");
+    let pr_payload = match &event.specific {
+        octofer::octocrab::models::webhook_events::WebhookEventPayload::PullRequest(p) => p,
+        _ => return Ok(()),
+    };
+
+    let action = match pr_payload.action {
+        octofer::octocrab::models::webhook_events::payload::PullRequestWebhookEventAction::Opened => "opened",
+        octofer::octocrab::models::webhook_events::payload::PullRequestWebhookEventAction::Synchronize => "synchronize",
+        _ => return Ok(()),
+    };
+
+    let pr = &pr_payload.pull_request;
+    let pr_number = pr.number;
+    let is_draft = pr.draft.unwrap_or(false);
+    
+    // octocrab's PullRequest state is an enum (Open, Closed)
+    let pr_state = match pr.state {
+        Some(octofer::octocrab::models::IssueState::Closed) => "closed",
+        _ => "open",
+    };
+
+    let author = pr.user.as_ref().map(|u| u.login.as_str()).unwrap_or("unknown");
 
     info!(
         pr_number,
@@ -61,7 +60,10 @@ pub async fn pull_request_handler(
         return Ok(());
     }
 
-    if let Err(e) = review::analyze_and_review(&context, &state, pr).await {
+    // Convert PullRequest to serde_json::Value for analyze_and_review
+    let pr_value = serde_json::to_value(pr)?;
+
+    if let Err(e) = review::analyze_and_review(&context, &state, &pr_value).await {
         error!(pr_number, error = %e, "Review failed");
     }
 
@@ -73,47 +75,38 @@ pub async fn issue_comment_handler(
     context: octofer::Context,
     state: Arc<AppState>,
 ) -> anyhow::Result<()> {
-    let payload = context.payload();
+    let event = match &context.event {
+        Some(e) => e,
+        None => return Ok(()),
+    };
 
-    // Only react to "created" comments
-    let action = payload
-        .get("action")
-        .and_then(|v| v.as_str())
-        .unwrap_or("");
-    if action != "created" {
-        return Ok(());
-    }
+    let comment_payload = match &event.specific {
+        octofer::octocrab::models::webhook_events::WebhookEventPayload::IssueComment(c) => c,
+        _ => return Ok(()),
+    };
 
+    let _action = match comment_payload.action {
+        octofer::octocrab::models::webhook_events::payload::IssueCommentWebhookEventAction::Created => "created",
+        _ => return Ok(()),
+    };
+
+    let issue = &comment_payload.issue;
+    
     // Must be on a PR (has pull_request link)
-    let issue = match payload.get("issue") {
-        Some(i) => i,
-        None => return Ok(()),
-    };
-    if issue.get("pull_request").is_none() {
+    if issue.pull_request.is_none() {
         return Ok(());
     }
 
-    let comment = match payload.get("comment") {
-        Some(c) => c,
-        None => return Ok(()),
-    };
-    let body = comment
-        .get("body")
-        .and_then(|b| b.as_str())
-        .unwrap_or("");
-    let body_lower = body.to_lowercase();
+    let comment = &comment_payload.comment;
+    let body_lower = comment.body.as_deref().unwrap_or("").to_lowercase();
 
     // Check for trigger commands anywhere in the comment
     if !body_lower.contains("/pawgloo") {
         return Ok(());
     }
 
-    let pr_number = issue.get("number").and_then(|n| n.as_u64()).unwrap_or(0);
-    let commenter = comment
-        .get("user")
-        .and_then(|u| u.get("login"))
-        .and_then(|l| l.as_str())
-        .unwrap_or("unknown");
+    let pr_number = issue.number;
+    let commenter = comment.user.login.as_str();
 
     info!(
         pr_number,
@@ -122,17 +115,17 @@ pub async fn issue_comment_handler(
 
     // React with 🚀 to acknowledge
     if let Some(octo) = context.installation_client().await? {
-        let repo = payload.get("repository");
-        let owner = repo
-            .and_then(|r| r.get("owner"))
-            .and_then(|o| o.get("login"))
-            .and_then(|l| l.as_str())
-            .unwrap_or("");
-        let repo_name = repo
-            .and_then(|r| r.get("name"))
-            .and_then(|n| n.as_str())
-            .unwrap_or("");
-        let comment_id = comment.get("id").and_then(|id| id.as_u64()).unwrap_or(0);
+        let repo = match &event.repository {
+            Some(r) => r,
+            None => {
+                error!("Webhook event missing repository info");
+                return Ok(());
+            }
+        };
+        
+        let owner = repo.owner.as_ref().map(|u| u.login.as_str()).unwrap_or("");
+        let repo_name = repo.name.as_str();
+        let comment_id = comment.id.0;
 
         // Add rocket reaction via authenticated octocrab client
         let reaction_path = format!(
