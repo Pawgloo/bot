@@ -330,3 +330,237 @@ impl JulesClient {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Helper to create a JulesClient for testing (no network calls made).
+    fn test_client() -> JulesClient {
+        JulesClient::new("test-key-for-unit-tests", &JulesMode::Speed, 25)
+    }
+
+    fn empty_session() -> Session {
+        Session {
+            name: "sessions/test-123".to_string(),
+            state: Some("COMPLETED".to_string()),
+            outputs: None,
+        }
+    }
+
+    // ── parse_response: valid JSON (mirrors codeblocks.test.js logic) ──
+
+    #[test]
+    fn parse_valid_json_with_issues() {
+        let client = test_client();
+        let json_response = r#"{
+            "summary": "Found 2 issues",
+            "issues": [
+                {
+                    "file": "src/main.rs",
+                    "line": 10,
+                    "severity": "critical",
+                    "category": "SECURITY",
+                    "comment": "Hardcoded API key"
+                },
+                {
+                    "file": "src/lib.rs",
+                    "line": 25,
+                    "severity": "warning",
+                    "category": "LOGIC",
+                    "comment": "Off-by-one error"
+                }
+            ]
+        }"#;
+
+        let activities = ActivitiesResponse {
+            activities: vec![serde_json::json!({
+                "agentMessaged": { "agentMessage": json_response }
+            })],
+        };
+
+        let result = client.parse_response(&activities, &empty_session()).unwrap();
+        assert!(result.summary.contains("Found 2 issues"));
+        assert_eq!(result.comments.len(), 2);
+        assert_eq!(result.comments[0].path, "src/main.rs");
+        assert_eq!(result.comments[0].line, 10);
+        assert!(result.comments[0].body.contains("SECURITY"));
+        assert!(result.comments[0].body.contains("Hardcoded API key"));
+        assert_eq!(result.comments[1].path, "src/lib.rs");
+        assert_eq!(result.comments[1].line, 25);
+    }
+
+    #[test]
+    fn parse_json_wrapped_in_code_fences() {
+        // Mirrors: auto-closes unclosed fenced code block / generic fence handling
+        let client = test_client();
+        let fenced = "```json\n{\"summary\": \"All good\", \"issues\": []}\n```";
+
+        let activities = ActivitiesResponse {
+            activities: vec![serde_json::json!({
+                "agentMessaged": { "agentMessage": fenced }
+            })],
+        };
+
+        let result = client.parse_response(&activities, &empty_session()).unwrap();
+        assert!(result.summary.contains("All good"));
+        assert!(result.comments.is_empty());
+    }
+
+    #[test]
+    fn parse_json_with_no_issues_array() {
+        let client = test_client();
+        let json_response = r#"{"summary": "No problems found"}"#;
+
+        let activities = ActivitiesResponse {
+            activities: vec![serde_json::json!({
+                "agentMessaged": { "agentMessage": json_response }
+            })],
+        };
+
+        let result = client.parse_response(&activities, &empty_session()).unwrap();
+        assert!(result.summary.contains("No problems found"));
+        assert!(result.comments.is_empty());
+    }
+
+    // ── parse_response: malformed / non-JSON fallback ───────────────
+
+    #[test]
+    fn parse_non_json_falls_back_to_raw_text() {
+        // Mirrors: "does not modify already valid fenced code blocks" — when
+        // the AI just returns prose instead of JSON, we gracefully fall back.
+        let client = test_client();
+        let raw_prose = "This code looks great! No issues found.\n\nKeep up the good work.";
+
+        let activities = ActivitiesResponse {
+            activities: vec![serde_json::json!({
+                "agentMessaged": { "agentMessage": raw_prose }
+            })],
+        };
+
+        let result = client.parse_response(&activities, &empty_session()).unwrap();
+        assert!(result.summary.contains("This code looks great"));
+        assert!(result.comments.is_empty());
+    }
+
+    // ── parse_response: empty / no activities ───────────────────────
+
+    #[test]
+    fn parse_empty_activities_returns_no_response() {
+        // Mirrors: "handles null/undefined/non-string gracefully"
+        let client = test_client();
+        let activities = ActivitiesResponse {
+            activities: vec![],
+        };
+
+        let result = client.parse_response(&activities, &empty_session()).unwrap();
+        assert!(result.summary.contains("No response received"));
+        assert!(result.comments.is_empty());
+    }
+
+    #[test]
+    fn parse_activities_with_empty_message() {
+        let client = test_client();
+        let activities = ActivitiesResponse {
+            activities: vec![serde_json::json!({
+                "agentMessaged": { "agentMessage": "" }
+            })],
+        };
+
+        // Empty string → fallback to session outputs → "No response"
+        let result = client.parse_response(&activities, &empty_session()).unwrap();
+        assert!(result.summary.contains("No response received"));
+    }
+
+    // ── parse_response: fallback to session outputs ─────────────────
+
+    #[test]
+    fn parse_falls_back_to_session_outputs() {
+        let client = test_client();
+        let activities = ActivitiesResponse {
+            activities: vec![],
+        };
+        let session = Session {
+            name: "sessions/fallback-1".to_string(),
+            state: Some("COMPLETED".to_string()),
+            outputs: Some(vec![serde_json::json!({
+                "text": "{\"summary\": \"From outputs\", \"issues\": []}"
+            })]),
+        };
+
+        let result = client.parse_response(&activities, &session).unwrap();
+        assert!(result.summary.contains("From outputs"));
+    }
+
+    // ── parse_response: filters out invalid comments ────────────────
+
+    #[test]
+    fn parse_skips_comments_with_missing_fields() {
+        let client = test_client();
+        let json_response = r#"{
+            "summary": "Review done",
+            "issues": [
+                { "file": "", "line": 10, "comment": "missing file" },
+                { "file": "src/main.rs", "line": 0, "comment": "line is 0" },
+                { "file": "src/main.rs", "line": 5, "comment": "" },
+                { "file": "src/main.rs", "line": 42, "comment": "This is valid" }
+            ]
+        }"#;
+
+        let activities = ActivitiesResponse {
+            activities: vec![serde_json::json!({
+                "agentMessaged": { "agentMessage": json_response }
+            })],
+        };
+
+        let result = client.parse_response(&activities, &empty_session()).unwrap();
+        assert_eq!(result.comments.len(), 1, "only the valid comment should survive");
+        assert_eq!(result.comments[0].line, 42);
+    }
+
+    // ── parse_response: alternative activity field names ─────────────
+
+    #[test]
+    fn parse_extracts_from_fallback_field_names() {
+        let client = test_client();
+        let activities = ActivitiesResponse {
+            activities: vec![serde_json::json!({
+                "message": "{\"summary\": \"Via message field\", \"issues\": []}"
+            })],
+        };
+
+        let result = client.parse_response(&activities, &empty_session()).unwrap();
+        assert!(result.summary.contains("Via message field"));
+    }
+
+    // ── ReviewComment equality ──────────────────────────────────────
+
+    #[test]
+    fn review_comment_equality() {
+        let a = ReviewComment {
+            path: "src/main.rs".to_string(),
+            line: 10,
+            side: "RIGHT".to_string(),
+            body: "fix this".to_string(),
+        };
+        let b = a.clone();
+        assert_eq!(a, b);
+    }
+
+    // ── ReviewComment serialization roundtrip ────────────────────────
+
+    #[test]
+    fn review_comment_serde_roundtrip() {
+        let comment = ReviewComment {
+            path: "src/lib.rs".to_string(),
+            line: 42,
+            side: "RIGHT".to_string(),
+            body: "**[SECURITY]** (critical): SQL injection".to_string(),
+        };
+
+        let json = serde_json::to_string(&comment).unwrap();
+        let deserialized: ReviewComment = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(comment, deserialized);
+    }
+}

@@ -14,14 +14,16 @@ use crate::AppState;
 
 /// A file that has changed in the PR, with its unified diff patch.
 #[derive(Debug)]
-struct ChangedFile {
-    filename: String,
-    patch: String,
+pub struct ChangedFile {
+    /// The file path relative to the repo root.
+    pub filename: String,
+    /// The unified diff patch content.
+    pub patch: String,
 }
 
 /// Parses a unified diff patch and returns the set of valid new-file (right-side) line numbers
 /// that GitHub will accept for inline review comments.
-fn parse_diff_lines(patch: &str) -> HashSet<u64> {
+pub fn parse_diff_lines(patch: &str) -> HashSet<u64> {
     let mut lines = HashSet::new();
     let mut new_line: u64 = 0;
 
@@ -55,7 +57,7 @@ fn parse_diff_lines(patch: &str) -> HashSet<u64> {
 }
 
 /// Checks whether a filename matches any of the ignore patterns.
-fn should_ignore(filename: &str, patterns: &[String]) -> bool {
+pub fn should_ignore(filename: &str, patterns: &[String]) -> bool {
     for pattern in patterns {
         if pattern.ends_with('/') {
             // Directory prefix match
@@ -78,7 +80,7 @@ fn should_ignore(filename: &str, patterns: &[String]) -> bool {
 }
 
 /// Builds the system prompt for code review (mirrors `_buildPrompt` in `jules.js`).
-fn build_prompt(files: &[ChangedFile], pr_meta: &serde_json::Value) -> String {
+pub fn build_prompt(files: &[ChangedFile], pr_meta: &serde_json::Value) -> String {
     // mem-write-over-format: build lists with write! instead of format!
     let mut file_list = String::with_capacity(files.len() * 40);
     for f in files {
@@ -366,35 +368,4 @@ pub async fn analyze_and_review(
     }
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_parse_diff_lines() {
-        let patch = "@@ -1,3 +1,4 @@\n context line\n+added line\n context line\n-removed line\n+replacement line";
-        let lines = parse_diff_lines(patch);
-        assert!(lines.contains(&1)); // context line
-        assert!(lines.contains(&2)); // added line
-        assert!(lines.contains(&3)); // context line
-        assert!(lines.contains(&4)); // replacement line
-        assert!(!lines.contains(&0));
-    }
-
-    #[test]
-    fn test_should_ignore_extension() {
-        let patterns = vec!["*.png".to_string(), "dist/".to_string()];
-        assert!(should_ignore("image.png", &patterns));
-        assert!(should_ignore("dist/bundle.js", &patterns));
-        assert!(!should_ignore("src/main.rs", &patterns));
-    }
-
-    #[test]
-    fn test_should_ignore_directory() {
-        let patterns = vec!["node_modules/".to_string()];
-        assert!(should_ignore("node_modules/package.json", &patterns));
-        assert!(!should_ignore("src/node_modules_utils.rs", &patterns));
-    }
 }

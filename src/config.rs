@@ -104,19 +104,3 @@ impl BotConfig {
         })
     }
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn jules_mode_default_is_speed() {
-        assert_eq!(JulesMode::default(), JulesMode::Speed);
-    }
-
-    #[test]
-    fn jules_mode_api_str() {
-        assert_eq!(JulesMode::Speed.as_api_str(), "SPEED");
-        assert_eq!(JulesMode::Balanced.as_api_str(), "BALANCED");
-    }
-}
