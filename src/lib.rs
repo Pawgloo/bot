@@ -31,10 +31,11 @@ pub struct AppState {
     pub bot_config: BotConfig,
 }
 
-
-
 /// Configures and initializes the octofer application router and state.
-pub async fn setup_app(bot_config: BotConfig, octofer_config: octofer::Config) -> Result<Octofer, anyhow::Error> {
+pub async fn setup_app(
+    bot_config: BotConfig,
+    octofer_config: octofer::Config,
+) -> Result<Octofer, anyhow::Error> {
     let state = Arc::new(AppState { bot_config });
     let mut app = Octofer::new(octofer_config).await?;
 
@@ -52,11 +53,22 @@ pub async fn setup_app(bot_config: BotConfig, octofer_config: octofer::Config) -
 /// Starts the Pawgloo Bot webhook listener.
 pub async fn start() -> Result<(), anyhow::Error> {
     // Initialize tracing via octofer
-    let octofer_config =
-        octofer::Config::from_env().unwrap_or_else(|_| octofer::Config::default());
+    let octofer_config = octofer::Config::from_env().unwrap_or_else(|_| octofer::Config::default());
     octofer_config.init_logging();
 
     info!("🤖 Pawgloo Bot starting...");
+
+    // ── FIX: Clean up Dokploy's escaped newlines in Base64 Key ──────
+    // Sometimes Dokploy or .env parses newlines as literal '\' and 'n'.
+    // We intercept this env var and fix it before octofer parses it.
+    if let Ok(base64_key) = std::env::var("GITHUB_PRIVATE_KEY_BASE64") {
+        if base64_key.contains("\\n") {
+            let fixed_key = base64_key.replace("\\n", "\n");
+            std::env::set_var("GITHUB_PRIVATE_KEY_BASE64", fixed_key);
+            tracing::info!("Sanitized GITHUB_PRIVATE_KEY_BASE64 (replaced literal '\\n')");
+        }
+    }
+    // ----------------------------------------------------------------
 
     // Load bot-specific configuration
     let bot_config = BotConfig::from_env()?;
@@ -65,7 +77,6 @@ pub async fn start() -> Result<(), anyhow::Error> {
         ignore_patterns = ?bot_config.ignore_patterns,
         "Configuration loaded"
     );
-    let _state = Arc::new(AppState { bot_config: bot_config.clone() });
 
     // Create the Octofer app
     let app = setup_app(bot_config, octofer_config).await?;
