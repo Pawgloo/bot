@@ -4,11 +4,11 @@
 
 ## Triggers
 
-| Trigger | Event | Behavior |
-|---------|-------|----------|
-| **Auto** | PR opened / new commits pushed | Reviews every new or updated PR automatically |
-| **Manual** | `/pawgloo-review` comment | Re-reviews on demand |
-| **Manual** | `/pawgloo` comment | Re-reviews on demand (shorthand) |
+| Trigger    | Event                          | Behavior                                      |
+| ---------- | ------------------------------ | --------------------------------------------- |
+| **Auto**   | PR opened / new commits pushed | Reviews every new or updated PR automatically |
+| **Manual** | `/pawgloo-review` comment      | Re-reviews on demand                          |
+| **Manual** | `/pawgloo` comment             | Re-reviews on demand (shorthand)              |
 
 ## Setup
 
@@ -24,18 +24,18 @@ cargo run
 
 Copy `.env.example` to `.env` and fill in:
 
-| Variable | Description |
-|----------|-------------|
-| `GITHUB_APP_ID` | Your GitHub App ID (numeric) |
-| `GITHUB_PRIVATE_KEY_BASE64` | Your GitHub App private key (Base64 encoded) |
-| `GITHUB_WEBHOOK_SECRET` | Webhook secret (set on GitHub App settings) |
-| `OCTOFER_PORT` | _(Optional)_ Port to listen on, default: `8000` |
-| `JULES_API_KEY` | API key from [jules.google](https://jules.google) → Settings |
-| `JULES_MODE` | _(Optional)_ `SPEED` (default) or `BALANCED` |
-| `SESSION_TIMEOUT_MINUTES` | _(Optional)_ Jules session timeout, default: `25` |
-| `IGNORE_PATTERNS` | _(Optional)_ Comma-separated globs to skip |
-| `MAX_PATCH_LENGTH` | _(Optional)_ Max chars per file patch before skipping |
-| `SKIP_DRAFT_PRS` | _(Optional)_ Set to `false` to review draft PRs |
+| Variable                    | Description                                                  |
+| --------------------------- | ------------------------------------------------------------ |
+| `GITHUB_APP_ID`             | Your GitHub App ID (numeric)                                 |
+| `GITHUB_PRIVATE_KEY_BASE64` | Your GitHub App private key (Base64 encoded)                 |
+| `GITHUB_WEBHOOK_SECRET`     | Webhook secret (set on GitHub App settings)                  |
+| `OCTOFER_PORT`              | _(Optional)_ Port to listen on, default: `8000`              |
+| `JULES_API_KEY`             | API key from [jules.google](https://jules.google) → Settings |
+| `JULES_MODE`                | _(Optional)_ `SPEED` (default) or `BALANCED`                 |
+| `SESSION_TIMEOUT_MINUTES`   | _(Optional)_ Jules session timeout, default: `25`            |
+| `IGNORE_PATTERNS`           | _(Optional)_ Comma-separated globs to skip                   |
+| `MAX_PATCH_LENGTH`          | _(Optional)_ Max chars per file patch before skipping        |
+| `SKIP_DRAFT_PRS`            | _(Optional)_ Set to `false` to review draft PRs              |
 
 ## How It Works
 
@@ -58,20 +58,20 @@ flowchart TD
 
 The prompt uses several advanced techniques from LLM code review research:
 
-| Technique | Purpose |
-|-----------|---------|
-| **Adversarial Persona** | Overrides RLHF sycophancy — no praising mediocre code |
-| **STRIDE Threat Model** | Spoofing, Tampering, Info Disclosure, Elevation of Privilege |
-| **Chain-of-Thought** | `analysis_scratchpad` forces step-by-step reasoning before findings |
-| **Big O Justification** | Performance suggestions require explicit complexity analysis |
-| **Dependency Constraint** | Fixes must use only native language features |
+| Technique                 | Purpose                                                             |
+| ------------------------- | ------------------------------------------------------------------- |
+| **Adversarial Persona**   | Overrides RLHF sycophancy — no praising mediocre code               |
+| **STRIDE Threat Model**   | Spoofing, Tampering, Info Disclosure, Elevation of Privilege        |
+| **Chain-of-Thought**      | `analysis_scratchpad` forces step-by-step reasoning before findings |
+| **Big O Justification**   | Performance suggestions require explicit complexity analysis        |
+| **Dependency Constraint** | Fixes must use only native language features                        |
 
 ### Review Categories
 
-| Category | What It Catches |
-|----------|-----------------|
-| **SECURITY** | Secrets, injection, auth bypass, IDOR, dev backdoors |
-| **LOGIC** | Bugs, off-by-one, null deref, race conditions, edge cases |
+| Category       | What It Catches                                              |
+| -------------- | ------------------------------------------------------------ |
+| **SECURITY**   | Secrets, injection, auth bypass, IDOR, dev backdoors         |
+| **LOGIC**      | Bugs, off-by-one, null deref, race conditions, edge cases    |
 | **CLEAN CODE** | DRY/SOLID violations, N+1 queries, memory leaks, YAGNI bloat |
 
 ## Project Structure
