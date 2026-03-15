@@ -1,0 +1,19 @@
+services:
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - GITHUB_APP_ID=${GITHUB_APP_ID}
+      - GITHUB_PRIVATE_KEY_BASE64=${GITHUB_PRIVATE_KEY_BASE64}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
+      - JULES_API_KEY=${JULES_API_KEY}
+      - JULES_MODE=${JULES_MODE:-SPEED}
+      - SESSION_TIMEOUT_MINUTES=${SESSION_TIMEOUT_MINUTES:-25}
+      - MAX_PATCH_LENGTH=${MAX_PATCH_LENGTH:-100000}
+      - IGNORE_PATTERNS=${IGNORE_PATTERNS:-*.txt,*.lock,*.png,*.jpg,*.svg,*.ico,dist/,node_modules/}
+      - SKIP_DRAFT_PRS=${SKIP_DRAFT_PRS:-true}
+      - OCTOFER_PORT=3000
+    restart: unless-stopped
