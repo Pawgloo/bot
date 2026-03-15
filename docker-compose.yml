@@ -16,4 +16,5 @@ services:
       - IGNORE_PATTERNS=${IGNORE_PATTERNS:-*.txt,*.lock,*.png,*.jpg,*.svg,*.ico,dist/,node_modules/}
       - SKIP_DRAFT_PRS=${SKIP_DRAFT_PRS:-true}
       - OCTOFER_PORT=3000
+      - OCTOFER_HOST=0.0.0.0
     restart: unless-stopped
