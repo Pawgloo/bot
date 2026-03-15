@@ -18,3 +18,9 @@ services:
       - OCTOFER_PORT=3000
       - OCTOFER_HOST=0.0.0.0
     restart: unless-stopped
+    networks:
+      - dokploy-network
+
+networks:
+  dokploy-network:
+    external: true
