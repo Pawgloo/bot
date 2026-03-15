@@ -101,10 +101,10 @@ pub async fn issue_comment_handler(
         .get("body")
         .and_then(|b| b.as_str())
         .unwrap_or("");
-    let trimmed = body.trim().to_lowercase();
+    let body_lower = body.to_lowercase();
 
-    // Check for trigger commands
-    if trimmed != "/pawgloo-review" && trimmed != "/pawgloo" {
+    // Check for trigger commands anywhere in the comment
+    if !body_lower.contains("/pawgloo") {
         return Ok(());
     }
 

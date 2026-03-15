@@ -2,6 +2,7 @@
 
 use std::env;
 use bot::config::{BotConfig, JulesMode};
+use serial_test::serial;
 
 #[test]
 fn jules_mode_default_is_speed() {
@@ -34,6 +35,7 @@ fn jules_mode_clone() {
 }
 
 #[test]
+#[serial]
 fn bot_config_from_env_missing_api_key() {
     unsafe { env::remove_var("JULES_API_KEY") };
     let result = BotConfig::from_env();
@@ -42,6 +44,7 @@ fn bot_config_from_env_missing_api_key() {
 }
 
 #[test]
+#[serial]
 fn bot_config_defaults_with_api_key() {
     unsafe {
         env::set_var("JULES_API_KEY", "test-key-123");
@@ -62,6 +65,7 @@ fn bot_config_defaults_with_api_key() {
 }
 
 #[test]
+#[serial]
 fn bot_config_balanced_mode() {
     unsafe {
         env::set_var("JULES_API_KEY", "test-key-balanced");
@@ -76,6 +80,7 @@ fn bot_config_balanced_mode() {
 }
 
 #[test]
+#[serial]
 fn bot_config_custom_ignore_patterns() {
     unsafe {
         env::set_var("JULES_API_KEY", "test-key-patterns");
@@ -90,6 +95,7 @@ fn bot_config_custom_ignore_patterns() {
 }
 
 #[test]
+#[serial]
 fn bot_config_skip_drafts_false() {
     unsafe {
         env::set_var("JULES_API_KEY", "test-key-drafts");
