@@ -1,0 +1,33 @@
+{
+  "action": "created",
+  "issue": {
+    "url": "https://api.github.com/repos/pawgloo/dummy/issues/1",
+    "number": 1,
+    "title": "feat: dummy PR for testing",
+    "user": {
+      "login": "octocat"
+    },
+    "state": "open",
+    "pull_request": {
+      "url": "https://api.github.com/repos/pawgloo/dummy/pulls/1"
+    }
+  },
+  "comment": {
+    "url": "https://api.github.com/repos/pawgloo/dummy/issues/comments/123",
+    "id": 123,
+    "user": {
+      "login": "octocat"
+    },
+    "body": "/pawgloo-review"
+  },
+  "repository": {
+    "name": "dummy",
+    "full_name": "pawgloo/dummy",
+    "owner": {
+      "login": "pawgloo"
+    }
+  },
+  "sender": {
+    "login": "octocat"
+  }
+}
