@@ -3,15 +3,12 @@
 This document provides a complete summary of the migration from Node.js (Probot) to Rust (octofer) to ensure continuity for future development or AI agents.
 
 ## Project Overview
-
 The **Pawgloo Bot** is a GitHub App designed to automate Pull Request reviews using the **Jules AI API**. It triggers automatically on PR events or manually via `/pawgloo` comments.
 
 ## Migration Summary
-
 The core logic has been moved from a Node.js/TypeScript environment to a performance-oriented Rust codebase using the standard `octofer` framework.
 
 ### 1. Key Components
-
 - **[src/lib.rs](file:///Users/gaurav/workspace/pawgloo/bot/src/lib.rs)**: Core library containing app orchestration and state management.
 - **[src/main.rs](file:///Users/gaurav/workspace/pawgloo/bot/src/main.rs)**: Thin binary entry point.
 - **[src/handlers.rs](file:///Users/gaurav/workspace/pawgloo/bot/src/handlers.rs)**: GitHub event handlers (PR Opened/Sync, Issue Comment).
@@ -20,7 +17,6 @@ The core logic has been moved from a Node.js/TypeScript environment to a perform
 - **[src/config.rs](file:///Users/gaurav/workspace/pawgloo/bot/src/config.rs)**: Environment-based configuration.
 
 ### 2. Implemented Features
-
 - [x] **Auto-Trigger**: Evaluates PRs on `opened` and `synchronize`.
 - [x] **Manual Commands**: Trigger via `/pawgloo` or `/pawgloo-review`.
 - [x] **Smart Filtering**: Ignores files based on glob patterns and type (e.g., locks, images).
@@ -31,7 +27,6 @@ The core logic has been moved from a Node.js/TypeScript environment to a perform
 ## Technical Context for Future Work
 
 ### Environment Configuration ([.env](file:///Users/gaurav/workspace/pawgloo/bot/.env))
-
 The bot expects the following variables:
 | Variable | Description |
 |----------|-------------|
@@ -45,7 +40,6 @@ The bot expects the following variables:
 > **Private Key Format**: Using `GITHUB_PRIVATE_KEY_BASE64` is recommended for [.env](file:///Users/gaurav/workspace/pawgloo/bot/.env) files to avoid newline escaping issues. You can generate it via `base64 -i key.pem | tr -d '\n'`.
 
 ### Critical Implementation Details
-
 - **Error Handling**: Uses `thiserror` for internal errors and `anyhow` for top-level propagation.
 - **Safety**: Follows [AGENTS.md](file:///Users/gaurav/workspace/pawgloo/bot/AGENTS.md) (Rust Best Practices) strictly (ownership, memory optimization).
 - **Testing**:
@@ -53,12 +47,16 @@ The bot expects the following variables:
   - [./tests/run_e2e_tests.sh](file:///Users/gaurav/workspace/pawgloo/bot/tests/run_e2e_tests.sh): Runs integration tests against a live local server.
 
 ## Fixed Startup Issues
-
 - **InvalidKeyFormat / Missing Variables**: Identified that `octofer` requires `GITHUB_` prefixes (e.g., `GITHUB_APP_ID`) instead of generic `APP_ID`. These have been updated in [README.md](file:///Users/gaurav/workspace/pawgloo/bot/README.md) and [.env.example](file:///Users/gaurav/workspace/pawgloo/bot/.env.example).
 - **Webhook Route**: The framework hardcodes the webhook listener at `/webhook`. Ensure your GitHub App Settings reflect this.
 - **Linker Error (`-liconv`)**: On macOS, always run with:
   `LIBRARY_PATH="$(xcode-select -p)/Toolchains/XcodeDefault.xctoolchain/usr/lib:$(xcrun --show-sdk-path)/usr/lib" cargo run`
 
 ---
+---
+### 🚀 Deployment Status (2026-03-15)
+- **Status**: ✅ **Functionally Verified** (Bot is healthy and responding).
+- **Direct IP Access**: `http://147.79.67.198:8000/health` → `200 OK`.
+- **Next Step**: Resolve domain routing in Dokploy (Select "bot" service in Domain settings and set Cloudflare SSL to "Full").
 
-_Created by Antigravity AI - 2026-03-15_
+*Created by Antigravity AI - 2026-03-15*

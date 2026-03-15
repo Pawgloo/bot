@@ -58,10 +58,20 @@ Once deployed:
    - Click **Redeliver**.
    - Dokploy logs should show: `2026-03-15... INFO 🤖 Event received: pull_request`.
 
-## 4. Troubleshooting
+## 4. Resetting Webhook Secret
+
+If you need to reset your `GITHUB_WEBHOOK_SECRET` from scratch:
+
+1.  **Generate**: Run `openssl rand -base64 32` or use a long random string.
+2.  **GitHub**: Paste the new secret in **GitHub App Settings → General → Webhook secret**.
+3.  **Dokploy**: Update the `GITHUB_WEBHOOK_SECRET` in the **Environment** tab, then **Deploy** to restart.
+
+## 5. Troubleshooting
+
 - **401 Unauthorized**: Mismatch between `GITHUB_WEBHOOK_SECRET` on GitHub vs Dokploy.
-- **404 page not found**: 
-    1. Verify `OCTOFER_HOST=0.0.0.0` is set in the Environment tab.
-    2. Ensure the container is on the `dokploy-network` (check your [docker-compose.yml](file:///Users/gaurav/workspace/pawgloo/bot/docker-compose.yml)).
-    3. In Dokploy UI → Application → Domains, ensure the **Service** is set to [bot](file:///Users/gaurav/workspace/pawgloo/bot/tests/test_config.rs#64-77) and **Port** is `3000`.
+- **404 page not found**:
+    - **Step 1**: Test direct access: `curl -i http://<VPS_IP>:8000/health`. If this works (200 OK), your bot is fine.
+    - **Step 2**: In Dokploy UI → **Application** → **Domains**, ensure the **Service** dropdown is set to **[bot](file:///Users/gaurav/workspace/pawgloo/bot/tests/test_config.rs#64-77)**. Dokploy needs to know which service in the [docker-compose.yml](file:///Users/gaurav/workspace/pawgloo/bot/docker-compose.yml) to route traffic to.
+    - **Step 3**: Ensure the domain in Dokploy points to **Port 3000**.
+    - **Step 4**: Ensure Cloudflare SSL is set to **"Full"** or **"Full (Strict)"**. "Flexible" will cause 404/500 errors with Dokploy's Traefik proxy.
 - **InvalidKeyFormat**: The Base64 encoded key is corrupted or not a valid RSA key.
