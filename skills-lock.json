@@ -1,6 +1,11 @@
 {
   "version": 1,
   "skills": {
+    "automate-github-issues": {
+      "source": "google-labs-code/jules-skills",
+      "sourceType": "github",
+      "computedHash": "79c318f5763c28c49d7c7119dd7ffcbaeebf4133f41d530889b88839a2e478f2"
+    },
     "rust-async-patterns": {
       "source": "wshobson/agents",
       "sourceType": "github",
