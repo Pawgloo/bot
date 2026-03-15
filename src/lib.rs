@@ -64,7 +64,10 @@ pub async fn start() -> Result<(), anyhow::Error> {
     if let Ok(base64_key) = std::env::var("GITHUB_PRIVATE_KEY_BASE64") {
         if base64_key.contains("\\n") {
             let fixed_key = base64_key.replace("\\n", "\n");
-            std::env::set_var("GITHUB_PRIVATE_KEY_BASE64", fixed_key);
+            // SAFETY: this is called during app initialization before multi-threading.
+            unsafe {
+                std::env::set_var("GITHUB_PRIVATE_KEY_BASE64", fixed_key);
+            }
             tracing::info!("Sanitized GITHUB_PRIVATE_KEY_BASE64 (replaced literal '\\n')");
         }
     }
