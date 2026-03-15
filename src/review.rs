@@ -319,42 +319,24 @@ pub async fn analyze_and_review(
         "comments": github_comments,
     });
 
-    // Use the GitHub REST API directly for creates review
-    let url = format!(
-        "https://api.github.com/repos/{owner}/{repo_name}/pulls/{pr_number}/reviews"
+    // Use the authenticated octocrab client for the review POST
+    let review_path = format!(
+        "/repos/{owner}/{repo_name}/pulls/{pr_number}/reviews"
     );
 
-    let res = reqwest::Client::new()
-        .post(&url)
-        .header("Accept", "application/vnd.github+json")
-        .header("User-Agent", "pawgloo-bot")
-        .header(
-            "Authorization",
-            format!(
-                "token {}",
-                octo.current()
-                    .user()
-                    .await
-                    .ok()
-                    .map(|_| "")  // placeholder — token handled by octocrab below
-                    .unwrap_or("")
-            ),
-        )
-        .json(&review_request)
-        .send()
-        .await;
-
-    // Fallback: if direct REST fails, try octocrab's issue comment
-    match res {
-        Ok(r) if r.status().is_success() => {
+    match octo
+        .post::<_, serde_json::Value>(review_path, Some(&review_request))
+        .await
+    {
+        Ok(_) => {
             info!(
                 pr_number,
                 inline_comments = valid_comments.len(),
                 "✅ Review posted"
             );
         }
-        _ => {
-            error!(pr_number, "createReview failed, falling back to issue comment");
+        Err(e) => {
+            error!(pr_number, error = %e, "createReview failed, falling back to issue comment");
 
             let mut fallback_body = review_body;
             for c in &valid_comments {

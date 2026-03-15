@@ -134,17 +134,20 @@ pub async fn issue_comment_handler(
             .unwrap_or("");
         let comment_id = comment.get("id").and_then(|id| id.as_u64()).unwrap_or(0);
 
-        // Add rocket reaction via REST API
-        let reaction_url = format!(
-            "https://api.github.com/repos/{owner}/{repo_name}/issues/comments/{comment_id}/reactions"
+        // Add rocket reaction via authenticated octocrab client
+        let reaction_path = format!(
+            "/repos/{owner}/{repo_name}/issues/comments/{comment_id}/reactions"
         );
-        let _ = reqwest::Client::new()
-            .post(&reaction_url)
-            .header("Accept", "application/vnd.github+json")
-            .header("User-Agent", "pawgloo-bot")
-            .json(&serde_json::json!({ "content": "rocket" }))
-            .send()
-            .await;
+        match octo
+            .post::<_, serde_json::Value>(
+                reaction_path,
+                Some(&serde_json::json!({ "content": "rocket" })),
+            )
+            .await
+        {
+            Ok(_) => info!(pr_number, "🚀 Reaction added"),
+            Err(e) => error!(pr_number, error = %e, "Failed to add reaction"),
+        }
 
         // Fetch full PR object
         let pr_data = octo.pulls(owner, repo_name).get(pr_number).await?;
