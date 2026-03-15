@@ -33,6 +33,7 @@ pub struct AppState {
 
 
 
+/// Configures and initializes the octofer application router and state.
 pub async fn setup_app(bot_config: BotConfig, octofer_config: octofer::Config) -> Result<Octofer, anyhow::Error> {
     let state = Arc::new(AppState { bot_config });
     let mut app = Octofer::new(octofer_config).await?;
@@ -64,7 +65,7 @@ pub async fn start() -> Result<(), anyhow::Error> {
         ignore_patterns = ?bot_config.ignore_patterns,
         "Configuration loaded"
     );
-    let state = Arc::new(AppState { bot_config: bot_config.clone() });
+    let _state = Arc::new(AppState { bot_config: bot_config.clone() });
 
     // Create the Octofer app
     let app = setup_app(bot_config, octofer_config).await?;

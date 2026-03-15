@@ -58,7 +58,9 @@ pub struct ReviewComment {
 /// The structured output of a Jules review.
 #[derive(Debug, Clone)]
 pub struct ReviewResult {
+    /// A high-level summary of the review findings.
     pub summary: String,
+    /// Detailed inline comments found during the review.
     pub comments: Vec<ReviewComment>,
 }
 
