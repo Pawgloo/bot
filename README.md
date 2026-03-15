@@ -26,16 +26,15 @@ Copy `.env.example` to `.env` and fill in:
 
 | Variable | Description |
 |----------|-------------|
-| `APP_ID` | Your GitHub App ID |
-| `PRIVATE_KEY` | Your GitHub App private key (PEM) |
-| `WEBHOOK_SECRET` | Webhook secret (set on GitHub App settings) |
-| `GITHUB_CLIENT_ID` | GitHub App client ID |
-| `GITHUB_CLIENT_SECRET` | GitHub App client secret |
+| `GITHUB_APP_ID` | Your GitHub App ID (numeric) |
+| `GITHUB_PRIVATE_KEY_BASE64` | Your GitHub App private key (Base64 encoded) |
+| `GITHUB_WEBHOOK_SECRET` | Webhook secret (set on GitHub App settings) |
+| `OCTOFER_PORT` | _(Optional)_ Port to listen on, default: `8000` |
 | `JULES_API_KEY` | API key from [jules.google](https://jules.google) → Settings |
 | `JULES_MODE` | _(Optional)_ `SPEED` (default) or `BALANCED` |
 | `SESSION_TIMEOUT_MINUTES` | _(Optional)_ Jules session timeout, default: `25` |
-| `IGNORE_PATTERNS` | _(Optional)_ Comma-separated globs to skip (default: `*.txt,*.lock,*.png,...`) |
-| `MAX_PATCH_LENGTH` | _(Optional)_ Max chars per file patch before skipping, default: `100000` |
+| `IGNORE_PATTERNS` | _(Optional)_ Comma-separated globs to skip |
+| `MAX_PATCH_LENGTH` | _(Optional)_ Max chars per file patch before skipping |
 | `SKIP_DRAFT_PRS` | _(Optional)_ Set to `false` to review draft PRs |
 
 ## How It Works
@@ -91,9 +90,9 @@ src/
 ```sh
 docker build -t pawgloo-bot .
 docker run \
-  -e APP_ID=<id> \
-  -e PRIVATE_KEY="<pem>" \
-  -e WEBHOOK_SECRET=<secret> \
+  -e GITHUB_APP_ID=<id> \
+  -e GITHUB_PRIVATE_KEY_BASE64="<base64>" \
+  -e GITHUB_WEBHOOK_SECRET=<secret> \
   -e JULES_API_KEY=<key> \
   pawgloo-bot
 ```

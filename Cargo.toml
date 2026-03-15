@@ -18,7 +18,9 @@ dotenv = "0.15.0"
 thiserror = "2.0.16"
 
 [dev-dependencies]
+axum = "0.8.8"
 tempfile = "3.8"
+tower = "0.5.3"
 
 # opt-lto-release, opt-codegen-units (AGENTS.md)
 [profile.release]

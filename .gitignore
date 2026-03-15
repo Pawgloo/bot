@@ -4,3 +4,6 @@
 /bot
 /frezze
 /botman
+.env
+*.pem
+/examples/debug_config.rs
