@@ -107,7 +107,8 @@ export default (app) => {
 			app.log.info(`Reviewing ${changedFiles.length} file(s)...`);
 
 			// 3. Call Jules
-			const reviewer = new JulesReviewer(process.env.JULES_API_KEY);
+			const mode = process.env.JULES_MODE || "SPEED";
+			const reviewer = new JulesReviewer(process.env.JULES_API_KEY, mode);
 			const filesForReview = changedFiles.map((f) => ({
 				filename: f.filename,
 				patch: f.patch,
